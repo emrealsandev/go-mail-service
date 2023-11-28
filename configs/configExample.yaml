@@ -1,0 +1,12 @@
+database:
+  host: "localhost"
+  port: 3306
+  username: "xxx"
+  password: "xxx"
+  dbname: "xxx"
+
+smtp:
+  host: "smpt.xxx.xxx.io"
+  port: 587
+  username: "xxx"
+  password: "xxx"
