@@ -1,34 +1,59 @@
 package mail
 
 import (
+	"MailService/internal/db"
 	"crypto/tls"
 	"github.com/spf13/viper"
 	"gopkg.in/gomail.v2"
 	"strconv"
 )
 
-func SendMail(to, subject, body string) error {
+type Smtp struct {
+	SMTPServer   string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	SenderEmail  string
+}
+
+func getSmtpConfig() (Smtp, error) {
 	smtpConfig := viper.GetStringMapString("smtp")
 
-	username := smtpConfig["username"]
-	password := smtpConfig["password"]
-	smtpHost := smtpConfig["host"]
 	smtpPort, err := strconv.Atoi(smtpConfig["port"])
+	if err != nil {
+		return Smtp{}, err
+	}
+
+	return Smtp{
+		SMTPServer:   smtpConfig["host"],
+		SMTPPort:     smtpPort,
+		SMTPUsername: smtpConfig["username"],
+		SMTPPassword: smtpConfig["password"],
+		SenderEmail:  smtpConfig["senderemail"],
+	}, nil
+}
+
+func SendMail(toEmail string, templateId int, customData map[string]interface{}) error {
+	// Smtp bilgilerini al
+	SmtpConfig, err := getSmtpConfig()
 	if err != nil {
 		return err
 	}
 
-	from := "admin@admin.com"
+	mailRecord, err := db.GetMailContent(templateId, customData)
+	if err != nil {
+		return err
+	}
 
 	// Gönderen bilgileri
 	sender := gomail.NewMessage()
-	sender.SetHeader("From", from)
-	sender.SetHeader("To", to)
-	sender.SetHeader("Subject", subject)
-	sender.SetBody("text/html", body)
+	sender.SetHeader("From", SmtpConfig.SenderEmail)
+	sender.SetHeader("To", toEmail)
+	sender.SetHeader("Subject", mailRecord.Subject)
+	sender.SetBody("text/html", mailRecord.Content)
 
 	// SMTP ayarları
-	dialer := gomail.NewDialer(smtpHost, smtpPort, username, password)
+	dialer := gomail.NewDialer(SmtpConfig.SMTPServer, SmtpConfig.SMTPPort, SmtpConfig.SMTPUsername, SmtpConfig.SMTPPassword)
 	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	// E-postayı gönder
 	if err := dialer.DialAndSend(sender); err != nil {
@@ -36,4 +61,5 @@ func SendMail(to, subject, body string) error {
 	}
 
 	return nil
+
 }
