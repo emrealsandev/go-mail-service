@@ -29,7 +29,7 @@ func getSmtpConfig() (Smtp, error) {
 		SMTPPort:     smtpPort,
 		SMTPUsername: smtpConfig["username"],
 		SMTPPassword: smtpConfig["password"],
-		SenderEmail:  smtpConfig["senderemail"],
+		SenderEmail:  smtpConfig["sender_email"], //viper camelCase okumuyor :(
 	}, nil
 }
 
@@ -51,6 +51,14 @@ func SendMail(toEmail string, templateId int, customData map[string]interface{})
 	sender.SetHeader("To", toEmail)
 	sender.SetHeader("Subject", mailRecord.Subject)
 	sender.SetBody("text/html", mailRecord.Content)
+
+	/*
+		fmt.Println("E-posta İçeriği:")
+		fmt.Println("From:", SmtpConfig.SenderEmail)
+		fmt.Println("To:", toEmail)
+		fmt.Println("Subject:", mailRecord.Subject)
+		fmt.Println("Content:", mailRecord.Content)
+	*/
 
 	// SMTP ayarları
 	dialer := gomail.NewDialer(SmtpConfig.SMTPServer, SmtpConfig.SMTPPort, SmtpConfig.SMTPUsername, SmtpConfig.SMTPPassword)

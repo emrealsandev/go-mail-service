@@ -1,5 +1,10 @@
 package db
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Template struct {
 	Id             int
 	Name           string
@@ -13,12 +18,21 @@ type Template struct {
 	RenderTemplate bool
 }
 
-func GetMailContent(templateID int, customVariables map[string]interface{}) (*Template, error) {
+type MailRecord struct {
+	Subject string
+	Content string
+}
+
+func GetMailContent(templateID int, customVariables map[string]interface{}) (*MailRecord, error) {
 	template, err := getMailTemplateByTemplateId(templateID)
+	parseMailContentToTemplate(&template.Content, customVariables)
 	if err != nil {
 		return nil, err
 	}
-	return template, nil
+
+	// anonim bir struct ile sadece senderin ihtiyacı olanları dönelim, template structu bu classta lazım
+	// Anonim struct yemedi hem dönüş parametresi olarak hem yukarıdaki nil hata verdi
+	return &MailRecord{Subject: template.Subject, Content: template.Content}, nil
 }
 
 func getMailTemplateByTemplateId(templateID int) (*Template, error) {
@@ -40,4 +54,11 @@ func getMailTemplateByTemplateId(templateID int) (*Template, error) {
 		return nil, err
 	}
 	return &template, nil
+}
+
+func parseMailContentToTemplate(templateContent *string, customVariables map[string]interface{}) {
+	for key, value := range customVariables {
+		stringValue := fmt.Sprintf("%v", value)
+		*templateContent = strings.Replace(*templateContent, "{{"+key+"}}", stringValue, -1)
+	}
 }
