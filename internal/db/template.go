@@ -1,20 +1,43 @@
 package db
 
-import "fmt"
+type Template struct {
+	Id             int
+	Name           string
+	Alias          string
+	Subject        string
+	Content        string
+	Description    string
+	SiteId         int
+	IsSmsTemplate  int
+	Lang           string
+	RenderTemplate bool
+}
 
-const (
-	Template1 = `Mail Şablonu 1`
-	Template2 = `Mail Şablonu 2`
-)
-
-func GetMailTemplate(templateID int) (string, error) {
-	// Şablonları döndür
-	switch templateID {
-	case 1:
-		return Template1, nil
-	case 2:
-		return Template2, nil
-	default:
-		return "", fmt.Errorf("unknown template ID: %d", templateID)
+func GetMailContent(templateID int, customVariables map[string]interface{}) (*Template, error) {
+	template, err := getMailTemplateByTemplateId(templateID)
+	if err != nil {
+		return nil, err
 	}
+	return template, nil
+}
+
+func getMailTemplateByTemplateId(templateID int) (*Template, error) {
+	var template Template
+	// Burayı gorma taşıyabilirim
+	err := DB.QueryRow("SELECT * FROM cms_email_templates WHERE id=?", templateID).Scan(
+		&template.Id,
+		&template.Name,
+		&template.Alias,
+		&template.Subject,
+		&template.Content,
+		&template.Description,
+		&template.SiteId,
+		&template.IsSmsTemplate,
+		&template.Lang,
+		&template.RenderTemplate,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &template, nil
 }
