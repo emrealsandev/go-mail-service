@@ -24,6 +24,7 @@ func StartServer() {
 		payload := Payload{}
 
 		// Requesti al
+		// TODO: Bu bulk alıp işleyecek şekilde düzenlenebilir
 		if err := c.BodyParser(&payload); err != nil {
 			log.Fatal(err)
 		}
@@ -34,7 +35,7 @@ func StartServer() {
 			log.Fatal(err)
 		}
 
-		// Kuyruklu gönderim ?
+		// TODO: Kuyruklu gönderim ?
 		if payload.IsQueue == false {
 			err := mailSender.SendMail(payload.ToEmail, payload.TemplateID, payload.CustomData)
 			if err != nil {
