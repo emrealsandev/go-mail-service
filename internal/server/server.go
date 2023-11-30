@@ -10,10 +10,11 @@ import (
 
 type Payload struct {
 	// Json struct değerlerinin baş harfi büyük harf ile başlamalıymış
-	ToEmail    string                 `json:"email"`
-	TemplateID int                    `json:"templateID"`
-	IsQueue    bool                   `json:"isQueue"`
-	CustomData map[string]interface{} `json:"customData"`
+	ToEmail       string                 `json:"email"`
+	TemplateAlias string                 `json:"template_alias"`
+	SiteID        int                    `json:"site_id"`
+	IsQueue       bool                   `json:"is_queue"`
+	CustomData    map[string]interface{} `json:"custom_data"`
 }
 
 func StartServer() {
@@ -37,7 +38,7 @@ func StartServer() {
 
 		// TODO: Kuyruklu gönderim ?
 		if payload.IsQueue == false {
-			err := mailSender.SendMail(payload.ToEmail, payload.TemplateID, payload.CustomData)
+			err := mailSender.SendMail(payload.ToEmail, payload.TemplateAlias, payload.SiteID, payload.CustomData)
 			if err != nil {
 				return c.SendString("Başarısız")
 			} else {
@@ -56,13 +57,17 @@ func StartServer() {
 
 // bunun public olmasına gerek yok
 func checkMailSendable(payload *Payload) error {
-	if payload.TemplateID == 0 {
-		return errors.New("Template Id Geçersiz")
+	if payload.TemplateAlias == "" {
+		return errors.New("template Alias geçersiz")
+	}
+
+	if payload.SiteID <= 0 {
+		return errors.New("siteId geçersiz")
 	}
 
 	_, err := mail.ParseAddress(payload.ToEmail)
 	if err != nil {
-		return errors.New("Email adresi geçersiz")
+		return errors.New("email adresi geçersiz")
 	}
 	return nil
 }

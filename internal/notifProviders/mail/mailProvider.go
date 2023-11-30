@@ -33,14 +33,14 @@ func getSmtpConfig() (Smtp, error) {
 	}, nil
 }
 
-func SendMail(toEmail string, templateId int, customData map[string]interface{}) error {
+func SendMail(toEmail string, templateAlias string, siteId int, customData map[string]interface{}) error {
 	// Smtp bilgilerini al
 	SmtpConfig, err := getSmtpConfig()
 	if err != nil {
 		return err
 	}
 
-	mailRecord, err := db.GetMailContent(templateId, customData)
+	mailRecord, err := db.GetMailContent(templateAlias, siteId, customData)
 	if err != nil {
 		return err
 	}
@@ -52,14 +52,6 @@ func SendMail(toEmail string, templateId int, customData map[string]interface{})
 	sender.SetHeader("Subject", mailRecord.Subject)
 	sender.SetBody("text/html", mailRecord.Content)
 
-	/*
-		fmt.Println("E-posta İçeriği:")
-		fmt.Println("From:", SmtpConfig.SenderEmail)
-		fmt.Println("To:", toEmail)
-		fmt.Println("Subject:", mailRecord.Subject)
-		fmt.Println("Content:", mailRecord.Content)
-	*/
-
 	// SMTP ayarları
 	dialer := gomail.NewDialer(SmtpConfig.SMTPServer, SmtpConfig.SMTPPort, SmtpConfig.SMTPUsername, SmtpConfig.SMTPPassword)
 	dialer.TLSConfig = &tls.Config{InsecureSkipVerify: true}
@@ -69,5 +61,4 @@ func SendMail(toEmail string, templateId int, customData map[string]interface{})
 	}
 
 	return nil
-
 }

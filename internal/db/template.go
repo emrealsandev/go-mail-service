@@ -23,22 +23,23 @@ type MailRecord struct {
 	Content string
 }
 
-func GetMailContent(templateID int, customVariables map[string]interface{}) (*MailRecord, error) {
-	template, err := getMailTemplateByTemplateId(templateID)
+func GetMailContent(templateAlias string, siteID int, customVariables map[string]interface{}) (*MailRecord, error) {
+	template, err := getMailTemplateByTemplateId(templateAlias, siteID)
 	parseMailContentToTemplate(&template.Content, customVariables)
 	if err != nil {
+		// eğer nil döneceksen diğer dönüşte referans dönmeli
 		return nil, err
 	}
 
 	// anonim bir struct ile sadece senderin ihtiyacı olanları dönelim, template structu bu classta lazım
-	// Anonim struct yemedi hem dönüş parametresi olarak hem yukarıdaki nil hata verdi
+	// Anonim struct düşündüğüm gibi olmadı, dönüş parametresi olarak struct tanımlamak lazım
 	return &MailRecord{Subject: template.Subject, Content: template.Content}, nil
 }
 
-func getMailTemplateByTemplateId(templateID int) (*Template, error) {
+func getMailTemplateByTemplateId(templateAlias string, siteID int) (*Template, error) {
 	var template Template
 	// Burayı gorma taşıyabilirim
-	err := DB.QueryRow("SELECT * FROM cms_email_templates WHERE id=?", templateID).Scan(
+	err := DB.QueryRow("SELECT * FROM cms_email_templates WHERE alias=? and site_id=?", templateAlias, siteID).Scan(
 		&template.Id,
 		&template.Name,
 		&template.Alias,

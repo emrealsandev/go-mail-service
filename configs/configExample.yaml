@@ -10,3 +10,4 @@ smtp:
   port: 587
   username: "xxx"
   password: "xxx"
+  sender_email: "xxxx@xxx.com"
