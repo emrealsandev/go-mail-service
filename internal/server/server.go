@@ -17,12 +17,16 @@ type Payload struct {
 	CustomData    map[string]interface{} `json:"custom_data"`
 }
 
+type BulkPayload struct {
+	Emails []Payload `json:"emails"`
+}
+
 func StartServer() {
 
 	router := fiber.New()
 
 	router.Post("/sendMail", func(c *fiber.Ctx) error {
-		payload := Payload{}
+		payload := BulkPayload{}
 
 		// Requesti al
 		// TODO: Bu bulk alıp işleyecek şekilde düzenlenebilir
@@ -31,22 +35,24 @@ func StartServer() {
 		}
 
 		// Request Validate et
-		err := checkMailSendable(&payload)
+		err := checkBulkMailSendable(&payload)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// TODO: Kuyruklu gönderim ?
-		if payload.IsQueue == false {
-			err := mailSender.SendMail(payload.ToEmail, payload.TemplateAlias, payload.SiteID, payload.CustomData)
-			if err != nil {
-				return c.SendString("Başarısız")
+		for _, mailPayload := range payload.Emails {
+			if !(mailPayload.IsQueue) {
+				err := mailSender.SendMail(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData)
+				if err != nil {
+					log.Println("Başarısız (kuyruk):", mailPayload.ToEmail)
+				} else {
+					log.Println("Başarılı (kuyruk):", mailPayload.ToEmail)
+				}
 			} else {
-				return c.SendString("Başarılı")
+				return c.SendString("Kuyruklu Gönderim Şuan aktif değildir")
 			}
-		} else {
-			return c.SendString("Kuyruklu Gönderim Şuan aktif değildir")
 		}
+		return c.SendString("işlem tamamlandı")
 	})
 
 	err := router.Listen(":3000")
@@ -56,18 +62,20 @@ func StartServer() {
 }
 
 // bunun public olmasına gerek yok
-func checkMailSendable(payload *Payload) error {
-	if payload.TemplateAlias == "" {
-		return errors.New("template Alias geçersiz")
-	}
+func checkBulkMailSendable(payload *BulkPayload) error {
+	for _, mailPayload := range payload.Emails {
+		if mailPayload.TemplateAlias == "" {
+			return errors.New("template Alias geçersiz")
+		}
 
-	if payload.SiteID <= 0 {
-		return errors.New("siteId geçersiz")
-	}
+		if mailPayload.SiteID <= 0 {
+			return errors.New("siteId geçersiz")
+		}
 
-	_, err := mail.ParseAddress(payload.ToEmail)
-	if err != nil {
-		return errors.New("email adresi geçersiz")
+		// E-posta adresini kontrol et
+		if _, err := mail.ParseAddress(mailPayload.ToEmail); err != nil {
+			return errors.New("email adresi geçersiz")
+		}
 	}
 	return nil
 }
