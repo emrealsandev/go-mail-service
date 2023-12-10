@@ -8,6 +8,8 @@ import (
 	"log"
 )
 
+const DefaultQueue = "mailQueue"
+
 func main() {
 	viper.AddConfigPath("/Users/emre.alsan/MyPersonalProjects/MailService/configs")
 	viper.SetConfigName("config")
@@ -29,7 +31,7 @@ func main() {
 	pflag.Parse()
 
 	if queueName == "" {
-		queueName = "mailQueue"
+		queueName = DefaultQueue
 	}
 
 	// RabbitMQ kuyruğunu işle

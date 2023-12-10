@@ -10,10 +10,10 @@ import (
 )
 
 type RequestStruct struct {
-	Email         string      `json:"email"`
-	TemplateAlias string      `json:"template_alias"`
-	SiteID        int         `json:"site_id"`
-	CustomData    interface{} `json:"custom_data"`
+	Email         string                 `json:"email"`
+	TemplateAlias string                 `json:"template_alias"`
+	SiteID        int                    `json:"site_id"`
+	CustomData    map[string]interface{} `json:"custom_data"`
 }
 
 func AddToQueue(toEmail string, templateAlias string, siteId int, customData map[string]interface{}, queueName string) error {
@@ -67,7 +67,7 @@ func handleQueueMessage(body []byte) {
 
 	// Kuyruktan gelen her bir mesajı işle
 	log.Printf("İşlenen kayıt bilgileri: Email: %s, Template:%s, SiteId:%v, CustomData:%v", mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, mailRequest.CustomData)
-	err := mail.SendMail(mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, mailRequest.CustomData.(map[string]interface{}))
+	err := mail.SendMail(mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, mailRequest.CustomData)
 	if err != nil {
 		log.Printf("E-posta gönderirken hata oluştu: %v", err)
 	}

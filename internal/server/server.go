@@ -60,25 +60,25 @@ func StartServer() {
 			}
 
 			if success != false {
-				if !(mailPayload.IsQueue) {
-					err := mailSender.SendMail(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData)
-					if err != nil {
-						success = false
-						message = "Mail Gönderimi Başarısız"
-					} else {
-						success = true
-						message = "Mail Gönderimi Başarılı"
-						log.Println("Başarılı gönderim:", mailPayload.ToEmail)
-					}
-				} else {
+				if mailPayload.IsQueue {
 					err := queue.AddToQueue(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData, "mailQueue")
 					if err != nil {
 						success = false
-						message = "Kuyruğa ekleme işlemi başarısız"
+						message = "Kuyruğa ekleme işlemi başarısız" // Kullanıcıya generic mesaj (debug için err.Error kullanılabilir)
 					} else {
 						success = true
 						message = "Kuyruğa ekleme başarılı"
 						log.Println("Kuyruğa ekleme başarılı:", mailPayload.ToEmail)
+					}
+				} else {
+					err := mailSender.SendMail(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData)
+					if err != nil {
+						success = false
+						message = "Mail Gönderimi Başarısız" // Kullanıcıya generic mesaj (debug için err.Error kullanılabilir)
+					} else {
+						success = true
+						message = "Mail Gönderimi Başarılı"
+						log.Println("Başarılı gönderim:", mailPayload.ToEmail)
 					}
 				}
 			}
