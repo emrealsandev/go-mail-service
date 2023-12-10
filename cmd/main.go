@@ -25,25 +25,22 @@ func main() {
 
 	// Veritabanı bağlantısını başlat
 	db.InitDB()
+	defer db.CloseDB()
 
 	var wg sync.WaitGroup
 
+	// Server başlat
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		server.StartServer()
 	}()
 
-	// ProcessQueue fonksiyonunu başlat (goroutine olarak)
+	// ProcessQueue fonksiyonunu başlat
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		queue.ProcessQueue("mailQueue")
 	}()
-
-	// Ana programın diğer işlemleri burada başlatılır
-	// ...
-
-	// Tüm goroutine'ların tamamlanmasını bekleyelim
 	wg.Wait()
 }

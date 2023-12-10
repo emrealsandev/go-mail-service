@@ -16,7 +16,6 @@ type RequestStruct struct {
 	CustomData    interface{} `json:"custom_data"`
 }
 
-// EnqueueRequestToQueue gelen isteği kuyruğa ekler
 func AddToQueue(toEmail string, templateAlias string, siteId int, customData map[string]interface{}, queueName string) error {
 	record, err := prepareQueueRecord(toEmail, templateAlias, siteId, customData)
 	if err != nil {
@@ -30,6 +29,7 @@ func AddToQueue(toEmail string, templateAlias string, siteId int, customData map
 	return nil
 }
 
+// public olmasına gerek yok
 func prepareQueueRecord(toEmail string, templateAlias string, siteID int, customData map[string]interface{}) (string, error) {
 	request := RequestStruct{
 		Email:         toEmail,
@@ -39,13 +39,14 @@ func prepareQueueRecord(toEmail string, templateAlias string, siteID int, custom
 	}
 	jsonData, err := json.Marshal(request)
 	if err != nil {
+		// Errorf fonksiyonu error tipi dönüyor
 		return "", fmt.Errorf("JSON formatına çevirme hatası: %v", err)
 	}
 	return string(jsonData), nil
 }
 
 func ProcessQueue(queueName string) {
-	messages, err := ConsumeQueue(queueName)
+	messages, err := ConsumeRabbitQueue(queueName)
 	if err != nil {
 		log.Fatalf("Kuyruktan mesajları alırken hata oluştu: %v", err)
 	}
@@ -60,7 +61,7 @@ func handleQueueMessage(body []byte) {
 	// Mesaj içeriğini JSON formatından çıkar
 	var mailRequest RequestStruct
 	if err := json.Unmarshal(body, &mailRequest); err != nil {
-		log.Printf("Kuyruktan gelen mesajı işlerken hata oluştu: %v", err)
+		log.Fatalf("Kuyruktan gelen mesajı işlerken hata oluştu: %v", err)
 		return
 	}
 

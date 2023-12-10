@@ -22,42 +22,52 @@ type BulkPayload struct {
 	Emails []Payload `json:"emails"`
 }
 
+type StatusResponse struct {
+	Success bool   `json:"success"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 func StartServer() {
 
 	router := fiber.New()
 
 	router.Post("/sendMail", func(c *fiber.Ctx) error {
+		successMessage := "İşlem Başarılı"
 		payload := BulkPayload{}
 
 		// Requesti al
 		if err := c.BodyParser(&payload); err != nil {
-			log.Fatal(err)
+			return c.Status(400).JSON(createResponse(400, err.Error(), false))
 		}
 
 		// Request Validate et
 		err := checkBulkMailSendable(&payload)
 		if err != nil {
-			log.Fatal(err)
+			return c.Status(400).JSON(createResponse(400, err.Error(), false))
 		}
 
 		for _, mailPayload := range payload.Emails {
 			if !(mailPayload.IsQueue) {
 				err := mailSender.SendMail(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData)
 				if err != nil {
-					log.Println("Başarısız (kuyruk):", mailPayload.ToEmail)
+					return c.Status(400).JSON(createResponse(400, "Mail Gönderimi Başarısız", false))
 				} else {
-					log.Println("Başarılı (kuyruk):", mailPayload.ToEmail)
+					log.Println("Başarılı gönderim:", mailPayload.ToEmail)
+					successMessage = "Mail gönderimi başarılı"
 				}
 			} else {
 				err := queue.AddToQueue(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData, "mailQueue")
 				if err != nil {
-					log.Println("Kuyruğa ekleme başarısız:", mailPayload.ToEmail)
+					return c.Status(400).JSON(createResponse(400, "Kuyruğa ekleme işlemi başarısız", false))
 				} else {
+					successMessage = "Kuyruğa ekleme başarılı"
 					log.Println("Kuyruğa ekleme başarılı:", mailPayload.ToEmail)
 				}
 			}
 		}
-		return c.SendString("işlem tamamlandı")
+		successResponse := createResponse(200, successMessage, true)
+		return c.Status(200).JSON(successResponse)
 	})
 
 	err := router.Listen(":3000")
@@ -73,7 +83,7 @@ func checkBulkMailSendable(payload *BulkPayload) error {
 			return errors.New("template Alias geçersiz")
 		}
 
-		if mailPayload.SiteID <= 0 {
+		if mailPayload.SiteID <= 0 && mailPayload.SiteID == 0 {
 			return errors.New("siteId geçersiz")
 		}
 
@@ -83,4 +93,13 @@ func checkBulkMailSendable(payload *BulkPayload) error {
 		}
 	}
 	return nil
+}
+
+// public olmasına gerek yok
+func createResponse(code int, message string, success bool) StatusResponse {
+	return StatusResponse{
+		Success: success,
+		Code:    code,
+		Message: message,
+	}
 }

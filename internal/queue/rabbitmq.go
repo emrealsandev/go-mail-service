@@ -54,13 +54,12 @@ func CloseRabbitMQConnection() {
 	}
 }
 
-// PublishToQueue RabbitMQ kuyruğuna mesaj ekler
 func PublishToQueue(queueName string, message string) error {
 	err := ch.Publish(
-		"",        // exchange
-		queueName, // routing key (kuyruk adı)
-		false,     // mandatory
-		false,     // immediate
+		"",
+		queueName, // kuyruk adı
+		false,
+		false,
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(message),
@@ -73,7 +72,7 @@ func PublishToQueue(queueName string, message string) error {
 	return nil
 }
 
-func ConsumeQueue(queueName string) (<-chan amqp.Delivery, error) {
+func ConsumeRabbitQueue(queueName string) (<-chan amqp.Delivery, error) {
 	messages, err := ch.Consume(
 		queueName, // queue
 		"",        // consumer
