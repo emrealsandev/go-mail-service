@@ -2,6 +2,7 @@ package server
 
 import (
 	mailSender "MailService/internal/notifProviders/mail"
+	"MailService/internal/queue"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"log"
@@ -29,7 +30,6 @@ func StartServer() {
 		payload := BulkPayload{}
 
 		// Requesti al
-		// TODO: Bu bulk alıp işleyecek şekilde düzenlenebilir
 		if err := c.BodyParser(&payload); err != nil {
 			log.Fatal(err)
 		}
@@ -49,7 +49,12 @@ func StartServer() {
 					log.Println("Başarılı (kuyruk):", mailPayload.ToEmail)
 				}
 			} else {
-				return c.SendString("Kuyruklu Gönderim Şuan aktif değildir")
+				err := queue.AddToQueue(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData, "mailQueue")
+				if err != nil {
+					log.Println("Kuyruğa ekleme başarısız:", mailPayload.ToEmail)
+				} else {
+					log.Println("Kuyruğa ekleme başarılı:", mailPayload.ToEmail)
+				}
 			}
 		}
 		return c.SendString("işlem tamamlandı")
