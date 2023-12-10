@@ -65,27 +65,9 @@ func handleQueueMessage(body []byte) {
 		return
 	}
 
-	// JSON formatındaki customData'yı map[string]interface{} türüne çözümle
-	var customData map[string]interface{}
-	switch v := mailRequest.CustomData.(type) {
-	case string:
-		// Zaten bir JSON stringi ise doğrudan çözümle
-		err := json.Unmarshal([]byte(v), &customData)
-		if err != nil {
-			log.Printf("CustomData çözümlenirken hata oluştu: %v", err)
-			return
-		}
-	case map[string]interface{}:
-		// Zaten bir harita ise doğrudan kullan
-		customData = v
-	default:
-		log.Printf("CustomData JSON formatında değil: %v", mailRequest.CustomData)
-		return
-	}
-
 	// Kuyruktan gelen her bir mesajı işle
-	// Mesajı mailProvider.go'daki SendMail fonksiyonuna yönlendir
-	err := mail.SendMail(mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, customData)
+	log.Printf("İşlenen kayıt bilgileri: Email: %s, Template:%s, SiteId:%v, CustomData:%v", mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, mailRequest.CustomData)
+	err := mail.SendMail(mailRequest.Email, mailRequest.TemplateAlias, mailRequest.SiteID, mailRequest.CustomData.(map[string]interface{}))
 	if err != nil {
 		log.Printf("E-posta gönderirken hata oluştu: %v", err)
 	}
