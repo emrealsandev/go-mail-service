@@ -28,14 +28,15 @@ type MailRecord struct {
 
 func GetMailContent(templateAlias string, siteID int, customVariables map[string]interface{}) (*MailRecord, error) {
 	template, err := getMailTemplateByTemplateId(templateAlias, siteID)
-	if !(template.Content.Valid || template.Subject.Valid) { // Nullxxx alanları string functinolarında kullanamıyoruz .String ile dönüştürmek lazım
-		return nil, errors.New("Mail içeriği geçersiz")
-	}
-	parseMailContentToTemplate(&template.Content.String, customVariables)
 	if err != nil {
-		// eğer nil döneceksen diğer dönüşte referans dönmeli
+		// eğer nil dönecekse diğer dönüşte referans dönmeli
 		return nil, err
 	}
+	if !template.Content.Valid || !template.Subject.Valid { // Nullxxx alanları string functinolarında kullanamıyoruz .String ile dönüştürmek lazım
+		return nil, errors.New("Mail içeriği veya başlığı uygun değil")
+	}
+
+	parseMailContentToTemplate(&template.Content.String, customVariables)
 
 	// anonim bir struct ile sadece senderin ihtiyacı olanları dönelim, template structu bu classta lazım
 	// Anonim struct düşündüğüm gibi olmadı, dönüş parametresi olarak struct tanımlamak lazım

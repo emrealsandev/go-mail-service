@@ -2,6 +2,7 @@ package server
 
 import (
 	mailSender "MailService/internal/notifProviders/mail"
+	"MailService/internal/queue"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"log"
@@ -17,36 +18,80 @@ type Payload struct {
 	CustomData    map[string]interface{} `json:"custom_data"`
 }
 
-func StartServer() {
+type BulkPayload struct {
+	Emails []Payload `json:"emails"`
+}
 
+type EmailDetailResponse struct {
+	Success  bool   `json:"success"`
+	Email    string `json:"email"`
+	IsQueued bool   `json:"is_queued"`
+	Message  string `json:"message"`
+}
+
+type StatusResponse struct {
+	Success bool                  `json:"success"`
+	Code    int                   `json:"code"`
+	Message string                `json:"message"`
+	Emails  []EmailDetailResponse `json:"emails"`
+}
+
+func StartServer() {
 	router := fiber.New()
 
 	router.Post("/sendMail", func(c *fiber.Ctx) error {
-		payload := Payload{}
+		payload := BulkPayload{}
+		var emailDetails []EmailDetailResponse
 
 		// Requesti al
-		// TODO: Bu bulk alıp işleyecek şekilde düzenlenebilir
 		if err := c.BodyParser(&payload); err != nil {
-			log.Fatal(err)
+			return c.Status(400).JSON(createResponse(400, err.Error(), false, emailDetails))
 		}
 
-		// Request Validate et
-		err := checkMailSendable(&payload)
-		if err != nil {
-			log.Fatal(err)
-		}
+		for _, mailPayload := range payload.Emails {
+			var message string
+			var success = true
 
-		// TODO: Kuyruklu gönderim ?
-		if payload.IsQueue == false {
-			err := mailSender.SendMail(payload.ToEmail, payload.TemplateAlias, payload.SiteID, payload.CustomData)
+			// Request Validate et
+			err := checkBulkMailSendable(&mailPayload)
 			if err != nil {
-				return c.SendString("Başarısız")
-			} else {
-				return c.SendString("Başarılı")
+				success = false
+				message = err.Error()
 			}
-		} else {
-			return c.SendString("Kuyruklu Gönderim Şuan aktif değildir")
+
+			if success != false {
+				if mailPayload.IsQueue {
+					err := queue.AddToQueue(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData, "mailQueue")
+					if err != nil {
+						success = false
+						message = "Kuyruğa ekleme işlemi başarısız" // Kullanıcıya generic mesaj (debug için err.Error kullanılabilir)
+					} else {
+						success = true
+						message = "Kuyruğa ekleme başarılı"
+						log.Println("Kuyruğa ekleme başarılı:", mailPayload.ToEmail)
+					}
+				} else {
+					err := mailSender.SendMail(mailPayload.ToEmail, mailPayload.TemplateAlias, mailPayload.SiteID, mailPayload.CustomData)
+					if err != nil {
+						success = false
+						message = "Mail Gönderimi Başarısız" // Kullanıcıya generic mesaj (debug için err.Error kullanılabilir)
+					} else {
+						success = true
+						message = "Mail Gönderimi Başarılı"
+						log.Println("Başarılı gönderim:", mailPayload.ToEmail)
+					}
+				}
+			}
+
+			emailDetails = append(emailDetails, EmailDetailResponse{
+				Success:  success,
+				Email:    mailPayload.ToEmail,
+				IsQueued: mailPayload.IsQueue,
+				Message:  message,
+			})
 		}
+		response := createResponse(200, "işlem tamamlandı", true, emailDetails)
+		return c.Status(200).JSON(response)
 	})
 
 	err := router.Listen(":3000")
@@ -56,18 +101,28 @@ func StartServer() {
 }
 
 // bunun public olmasına gerek yok
-func checkMailSendable(payload *Payload) error {
+func checkBulkMailSendable(payload *Payload) error {
 	if payload.TemplateAlias == "" {
 		return errors.New("template Alias geçersiz")
 	}
 
-	if payload.SiteID <= 0 {
+	if payload.SiteID <= 0 && payload.SiteID == 0 {
 		return errors.New("siteId geçersiz")
 	}
 
-	_, err := mail.ParseAddress(payload.ToEmail)
-	if err != nil {
+	// E-posta adresini kontrol et
+	if _, err := mail.ParseAddress(payload.ToEmail); err != nil {
 		return errors.New("email adresi geçersiz")
 	}
 	return nil
+}
+
+// public olmasına gerek yok
+func createResponse(code int, message string, success bool, emailDetail []EmailDetailResponse) StatusResponse {
+	return StatusResponse{
+		Success: success,
+		Code:    code,
+		Message: message,
+		Emails:  emailDetail,
+	}
 }

@@ -19,7 +19,7 @@ type Smtp struct {
 func getSmtpConfig() (Smtp, error) {
 	smtpConfig := viper.GetStringMapString("smtp")
 
-	smtpPort, err := strconv.Atoi(smtpConfig["port"])
+	smtpPort, err := strconv.Atoi(smtpConfig["port"]) // Viper port değerini string getiriyor ondan inte dönüştürdük
 	if err != nil {
 		return Smtp{}, err
 	}

@@ -34,3 +34,12 @@ func InitDB() {
 
 	DB = db
 }
+
+func CloseDB() {
+	if DB != nil {
+		err := DB.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}

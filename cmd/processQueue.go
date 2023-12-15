@@ -3,13 +3,14 @@ package main
 import (
 	"MailService/internal/db"
 	"MailService/internal/queue"
-	"MailService/internal/server"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"log"
 )
 
+const DefaultQueue = "mailQueue"
+
 func main() {
-	// Konfigürasyon dosyasını yükle
 	viper.AddConfigPath("/Users/emre.alsan/MyPersonalProjects/MailService/configs")
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -22,10 +23,17 @@ func main() {
 	queue.InitRabbitMQConnection()
 	defer queue.CloseRabbitMQConnection()
 
-	// Veritabanı bağlantısını başlat
 	db.InitDB()
 	defer db.CloseDB()
 
-	// Server başlat
-	server.StartServer()
+	var queueName string
+	pflag.StringVarP(&queueName, "queue", "q", "", "Kuyruk adı")
+	pflag.Parse()
+
+	if queueName == "" {
+		queueName = DefaultQueue
+	}
+
+	// RabbitMQ kuyruğunu işle
+	queue.ProcessQueue(queueName)
 }
